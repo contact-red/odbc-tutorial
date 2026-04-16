@@ -30,7 +30,7 @@ jobs:
         env:
           INPUT_SITE_URL: "https://odbc-tutorial.contact.red"
           INPUT_LIBRARY_NAME: "odbc-tutorial"
-          INPUT_DOCS_BUILD_DIR: "docs"
+          INPUT_DOCS_BUILD_DIR: "build/docs"
       - name: Rebuild site with custom theme
         run: mkdocs build
       - name: Setup Pages
@@ -38,7 +38,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'site/'
+          path: 'build/docs/site/'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
