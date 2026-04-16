@@ -35,6 +35,9 @@ plugins:
 theme:
   name: material
 
+  extra_css:
+    - assets/ponylang.css
+
   favicon: assets/logo.png
 
   features:
