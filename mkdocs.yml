@@ -25,22 +25,18 @@ markdown_extensions:
 plugins:
   - search
   - ezlinks
-# - htmlproofer:
-#     raise_error: True
-#     raise_error_excludes:
-#       429: ["https://github.com/ponylang", "https://web.archive.org/*"]
-#       404: ["https://github.com/ponylang"]
-#       403: ["https://readthedocs.org"]
 
 extra_css:
   - assets/ponylang.css
 
-
 theme:
   name: material
-
+  logo: assets/logo.png
   favicon: assets/logo.png
-
+  palette:
+    scheme: ponylang
+    primary: brown
+    accent: amber
   features:
     - content.code.copy
     - content.code.select
@@ -54,25 +50,6 @@ theme:
 
   icon:
     repo: fontawesome/brands/github
-
-  logo: assets/logo.png
-
-  palette:
-    # Light mode
-    - scheme: default
-      primary: brown
-      accent: amber
-      toggle:
-        icon: material/brightness-4
-        name: Switch to dark mode
-
-    # Dark mode
-    - scheme: slate
-      primary: brown
-      accent: amber
-      toggle:
-        icon: material/brightness-4
-        name: Switch to light mode
 
 nav:
   - Home: "index.md"
