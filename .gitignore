@@ -1,0 +1,8 @@
+*.swp
+site/
+.venv/
+dictionary.dic
+code-samples/_corral/
+code-samples/_repos/
+code-samples/build/
+code-samples/lock.json

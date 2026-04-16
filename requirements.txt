@@ -1,0 +1,4 @@
+mkdocs-htmlproofer-plugin>=0.1.0
+mkdocs-ezlinks-plugin>=0.1.8
+mkdocs-material>=9.6.20
+mkdocs-custom-fences>=0.1.2
