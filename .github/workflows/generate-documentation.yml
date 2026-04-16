@@ -7,6 +7,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  packages: read
 
 concurrency:
   group: "update-documentation"
@@ -19,21 +20,25 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/ponylang/library-documentation-action-v2:release
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.1.1
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-      - name: Build site
+        uses: actions/checkout@v6.0.2
+      - name: Generate documentation
+        run: /entrypoint.py
+        env:
+          INPUT_SITE_URL: "https://odbc-tutorial.contact.red"
+          INPUT_LIBRARY_NAME: "odbc-tutorial"
+          INPUT_DOCS_BUILD_DIR: "docs"
+      - name: Rebuild site with custom theme
         run: mkdocs build
-      - name: Determine filepaths
-        run: find . 
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'site'
+          path: 'site/'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
