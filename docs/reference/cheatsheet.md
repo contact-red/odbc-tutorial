@@ -43,11 +43,14 @@ See: [Executing](../prepared/executing.md), [Reusing Statements](../prepared/reu
 
 ## Transaction
 
-```text
-Connection.begin() ──► TxBegun | TxBeginError
-  ├── ... exec / prepare / etc. ...
-  ├── if ok:  Connection.commit()   ──► TxCommitted   | TxCommitError
-  └── if err: Connection.rollback() ──► TxRolledBack | TxRollbackError
+```mermaid
+flowchart TD
+    A["Connection.begin()"] --> B{"TxBegun or TxBeginError?"}
+    B -->|TxBegun| C["... exec / prepare / etc. ..."]
+    B -->|TxBeginError| X["abort"]
+    C --> D{"ok or err?"}
+    D -->|ok| E["Connection.commit()<br/>→ TxCommitted / TxCommitError"]
+    D -->|err| F["Connection.rollback()<br/>→ TxRolledBack / TxRollbackError"]
 ```
 
 See: [Transactions](../transactions/index.md).

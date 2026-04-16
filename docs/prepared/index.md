@@ -9,34 +9,21 @@ Two reasons to prepare:
 
 ## Statement lifecycle
 
-```text
-prepare(sql)
-   │
-   ▼
-┌──────────────────┐
-│  Ready to bind   │
-└────────┬─────────┘
-         │ bind(i, v)       ┌──────────────┐
-         ├─────────────────►│   bind all   │
-         │                  │  parameters  │
-         │                  └──────┬───────┘
-         │                         │ execute() / execute_update()
-         │                         ▼
-         │                  ┌──────────────┐
-         │                  │  Executing   │
-         │                  └──────┬───────┘
-         │                         │ fetch() until EndOfRows
-         │                         ▼
-         │                  ┌──────────────┐
-         │                  │Cursor open   │
-         │                  └──────┬───────┘
-         │                         │ close_cursor()
-         └─────────────────────────┤
-                                   │ close()
-                                   ▼
-                             ┌──────────┐
-                             │  Closed  │
-                             └──────────┘
+```mermaid
+stateDiagram-v2
+    state "Ready to bind" as Ready
+    state "Bind all parameters" as Binding
+    state "Executing" as Executing
+    state "Cursor open" as Cursor
+    state "Closed" as Closed
+
+    [*] --> Ready: prepare(sql)
+    Ready --> Binding: bind(i, v)
+    Binding --> Executing: execute() / execute_update()
+    Executing --> Cursor: fetch() until EndOfRows
+    Cursor --> Ready: close_cursor()
+    Ready --> Closed: close()
+    Closed --> [*]
 ```
 
 The interesting transition is `close_cursor()` — it returns the statement to the "ready to bind" state. That's what lets you batch: prepare once, bind/execute/close-cursor in a loop, close the statement when the loop's done.
