@@ -32,11 +32,12 @@ plugins:
 #       404: ["https://github.com/ponylang"]
 #       403: ["https://readthedocs.org"]
 
+extra_css:
+  - assets/ponylang.css
+
+
 theme:
   name: material
-
-  extra_css:
-    - assets/ponylang.css
 
   favicon: assets/logo.png
 
