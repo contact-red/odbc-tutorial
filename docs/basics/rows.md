@@ -1,12 +1,12 @@
 # Reading Rows
 
-A `Row` is an immutable (`val`) snapshot of one result row. You get one from `Cursor.fetch()`, from the `Cursor.values()` iterator, or from `Statement.fetch()` once we get to prepared statements.
+A `Row` is an immutable (`val`) snapshot of one result row, returned from `Cursor.fetch()`, the `Cursor.values()` iterator, or `Statement.fetch()`.
 
-`Row` values are sendable across actors — that's why they're `val`. You can fetch a row into one actor, send it to another, and keep fetching. Each `fetch()` allocates a fresh `Row`.
+`Row` is `val` and therefore sendable: fetch in one actor, send to another, keep fetching. Each `fetch()` allocates a fresh `Row`.
 
 ## Typed accessors
 
-Every accessor takes a `ColIndex` (1-based) and returns the column value *or* `SqlNull`. Every accessor also `?`-raises on two conditions: the index is out of range, or the column's actual type doesn't match what you asked for.
+Each accessor takes a 1-based `ColIndex` and returns the column value *or* `SqlNull`. Each `?`-raises on two conditions: out-of-range index, or type mismatch.
 
 ```pony
 fun int(i: ColIndex):       (I64       | SqlNull) ?
@@ -19,21 +19,21 @@ fun timestamp(i: ColIndex): (SqlTimestamp | SqlNull) ?
 fun decimal(i: ColIndex):   (SqlDecimal | SqlNull) ?
 ```
 
-There's also `column(i)?` which returns the polymorphic `SqlValue` if you want to do your own matching, and `is_null(i)?` / `size()` for meta-inspection.
+Also `column(i)?` for the polymorphic `SqlValue` and `is_null(i)?` / `size()` for meta-inspection.
 
 ### `int()` widens
 
-The `int()` accessor accepts any of the four integer types (`SqlTinyInt`, `SqlSmallInt`, `SqlInteger`, `SqlBigInt`) and widens to `I64`. That's deliberate: most callers don't care whether a value came back as `SMALLINT` or `BIGINT`, they just want an integer. When you do care (for bit-width preservation or range checks), use `row.column(i)?` and match on the concrete variant.
+`int()` accepts any of `SqlTinyInt`, `SqlSmallInt`, `SqlInteger`, `SqlBigInt` and widens to `I64`. Most callers don't care about the original width. When you do (bit-width preservation, range checks), use `column(i)?` and match on the concrete variant.
 
 ### `bool()` is forgiving
 
-Drivers disagree about how to return boolean columns. Postgres might return a `SMALLINT` or a `CHAR` depending on configuration. psqlODBC has a `BoolsAsChar=Yes` setting that makes it return `"1"` / `"0"`. `row.bool()` accepts all of:
+Drivers disagree about how boolean columns come back. `row.bool()` accepts:
 
 - `SqlBool`
-- any integer type (non-zero → true)
-- `SqlText` containing `"1"`, `"0"`, `"t"`, `"f"`, `"true"`, or `"false"` (case-insensitive)
+- any integer (non-zero → true)
+- `SqlText` containing `"1"`, `"0"`, `"t"`, `"f"`, `"true"`, `"false"` (case-insensitive)
 
-A `SqlText` that's none of those raises the partial function's error.
+Anything else raises the partial function's error.
 
 ## A worked example
 
@@ -41,13 +41,9 @@ A `SqlText` that's none of those raises the partial function's error.
 --8<-- "04-rows/main.pony"
 ```
 
-Running it:
-
 ```shell
 ./build/04-rows
 ```
-
-Output:
 
 ```text
 1 | widget | 9.99
@@ -57,7 +53,7 @@ Output:
 
 ## The `SqlNull` primitive
 
-`SqlNull` is a primitive (singleton). It's part of the `SqlValue` union and of every typed accessor's return union. There is no implicit nullable value and no `None` — a column is either its declared type or `SqlNull`, and the match forces you to say which.
+`SqlNull` is a singleton primitive, part of the `SqlValue` union and of every typed accessor's return union. There's no implicit nullable value and no `None` — a column is either its declared type or `SqlNull`, and the match forces you to say which.
 
 ```pony
 let id =
@@ -67,11 +63,11 @@ let id =
   end
 ```
 
-This is a place where the library leans hard on Pony's type system. You can't accidentally read a nullable column as if it weren't — the union makes sure.
+The library leans hard on the type system here: you can't accidentally read a nullable column as if it weren't.
 
-## One more thing: error handling
+## Error handling
 
-You'll notice the code wraps accessors in a `try`:
+Accessors wrap in a `try`:
 
 ```pony
 try
@@ -83,7 +79,7 @@ else
 end
 ```
 
-That catches the `?` errors — out-of-range index or wrong type. In practice the indices and types in your code should match the SELECT's column list, so hitting the `else` branch means a schema drift or a bug. Keep the `try` around the whole row read rather than per-accessor — it's rarely useful to distinguish "column 1 went wrong" from "column 3 went wrong" at runtime.
+That catches out-of-range or wrong-type `?` errors. Indices and types should match the SELECT's column list, so hitting `else` means schema drift or a bug. Wrap the whole row read, not each accessor — distinguishing "column 1" from "column 3" at runtime is rarely useful.
 
 ## What's next
 

@@ -1,6 +1,6 @@
 # Executing
 
-Once every parameter is bound, you run the statement. There are two ways to do that, and picking the right one matters.
+Once the parameters are bound, run the statement. Two ways, and picking the right one matters.
 
 ## Two execute methods
 
@@ -9,21 +9,21 @@ fun ref execute():        (Executed | ExecError)   // opens a cursor
 fun ref execute_update(): (RowCount | ExecError)   // reports affected rows
 ```
 
-- `execute()` — for statements that produce a result set you're going to fetch. After a successful call the statement has an *open cursor* and you can iterate it with `fetch()` or `values()`.
-- `execute_update()` — for DML (`INSERT`, `UPDATE`, `DELETE`) where you want the affected row count. Does not open a cursor.
+- `execute()` — for statements with a result set to fetch. On success the statement has an *open cursor*, iterated with `fetch()` or `values()`.
+- `execute_update()` — for DML where you want the affected row count. No cursor.
 
-Calling the wrong one isn't fatal — the library will catch it — but the shape of the return type tells you which one fits:
+Calling the wrong one isn't fatal (the library catches it), but the return type is the signal:
 
-- If you're about to fetch rows → `execute()`
-- If you just need "how many rows did that touch" → `execute_update()`
+- About to fetch rows → `execute()`
+- Just need a row count → `execute_update()`
 
 ## `Executed` is a primitive
 
-Successful `execute()` returns the `Executed` primitive, not the `Statement`. That's a small but deliberate design choice: after `execute()` the statement is in a distinct state (cursor open) with a different set of valid operations, and giving that state a name makes it visible in the code.
+Successful `execute()` returns the `Executed` primitive, not the `Statement`. After `execute()` the statement is in a distinct state (cursor open) with different valid operations; naming the state makes that visible.
 
 ## A SELECT round-trip
 
-Here's a fragment — the relevant bit of [sample 06](reuse.md):
+A fragment from [sample 06](reuse.md):
 
 ```pony
 match \exhaustive\ conn.prepare(
@@ -47,26 +47,26 @@ match \exhaustive\ conn.prepare(
 end
 ```
 
-`stmt.values()` returns a `StatementIterator` that's the same shape as the `CursorIterator` you saw in [Querying](../basics/querying.md) — yielding `Row` or `FetchError`, terminating on `EndOfRows`.
+`stmt.values()` returns a `StatementIterator` — same shape as the `CursorIterator` from [Querying](../basics/querying.md): yields `Row` or `FetchError`, stops on `EndOfRows`.
 
-## ExecError during execute
+## ExecError kinds
 
-The `ExecError` kinds you can see from a prepared statement's `execute()` / `execute_update()` are a superset of the ones from `Connection.exec()`:
+The `ExecError` kinds from a prepared statement's `execute()` / `execute_update()` are a superset of those from `Connection.exec()`:
 
 | Kind | Means |
 |------|-------|
 | `QueryError` | General driver-reported SQL error |
-| `ConstraintViolation` | SQLSTATE 23xxx — check/unique/foreign key etc. |
+| `ConstraintViolation` | SQLSTATE 23xxx — check/unique/FK |
 | `SyntaxError` | SQLSTATE 42xxx — bad SQL |
-| `ConnectionLost` | SQLSTATE 08xxx — connection dropped mid-operation |
-| `UnboundParams` | You called `execute` before binding every parameter |
-| `StatementClosed` | You've already called `close()` on the statement |
-| `ConnectionClosed` | The owning connection is closed |
-| `CursorNotOpen` | Fetch called without a cursor (only from `fetch()`) |
-| `CursorAlreadyOpen` | Second `execute()` without closing the previous cursor |
+| `ConnectionLost` | SQLSTATE 08xxx — dropped mid-operation |
+| `UnboundParams` | Execute before binding every parameter |
+| `StatementClosed` | Statement already `close()`d |
+| `ConnectionClosed` | Owning connection is closed |
+| `CursorNotOpen` | Fetch without a cursor (from `fetch()` only) |
+| `CursorAlreadyOpen` | Second `execute()` without closing the cursor |
 
-The library classifies driver errors into those kinds by SQLSTATE prefix. If you want to match on specific SQLSTATEs directly (for example, detecting deadlocks on MySQL's `40001`), use `e.unsafe_diag()` and inspect the raw chain — covered in [Reading Diagnostics](../errors/diagnostics.md).
+Kinds are classified by SQLSTATE prefix. To match specific SQLSTATEs directly (e.g. MySQL's `40001` for deadlocks), use `e.unsafe_diag()` — see [Reading Diagnostics](../errors/diagnostics.md).
 
 ## What's next
 
-[Reusing Statements](reuse.md) puts `execute_update()`, `execute()`, and `close_cursor()` together to show how prepared statements pay for themselves on batches.
+[Reusing Statements](reuse.md) puts `execute_update()`, `execute()`, and `close_cursor()` together on a batch.

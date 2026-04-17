@@ -1,6 +1,6 @@
 # Reading Diagnostics
 
-A `DiagChain` is an array of `DiagRecord` values, each representing one entry from ODBC's diagnostic-record stack. Drivers often return multiple records for a single failure — the first is typically the primary error, the rest are context.
+A `DiagChain` is an array of `DiagRecord` values — one per entry in ODBC's diagnostic-record stack. Drivers often return several records per failure; the first is usually the primary error, the rest are context.
 
 ```pony
 type DiagChain is Array[DiagRecord] val
@@ -12,25 +12,21 @@ class val DiagRecord
   fun string():    String iso^  // "[SQLSTATE] message"
 ```
 
-- **`sqlstate`** — the five-character SQLSTATE code. Standardised where possible; the library's error-kind classifier uses the first two characters.
-- **`native_code`** — a driver-specific integer. Postgres returns its internal error code here; MariaDB returns a MySQL error number. Useful when you need to distinguish errors the ODBC standard collapses together.
-- **`message()`** — the driver's message. May contain credentials. May contain query text. Audit accordingly.
+- **`sqlstate`** — five-character SQLSTATE. The library's kind classifier uses the first two characters.
+- **`native_code`** — driver-specific integer. Postgres returns its internal code; MariaDB returns a MySQL error number. Useful when ODBC's standard collapses errors the driver distinguishes.
+- **`message()`** — the driver's message. May contain credentials or query text. Audit accordingly.
 
 ## A demonstration
 
-The sample below forces two errors (a bad DSN and a SQL syntax error), then peeks under the hood at both:
+The sample forces two errors (bad DSN, SQL syntax error), then peeks at both:
 
 ```pony
 --8<-- "09-errors/main.pony"
 ```
 
-Running it:
-
 ```shell
 ./build/09-errors
 ```
-
-Output:
 
 ```text
 redacted: ConnectError: driver connect failed [IM002]
@@ -49,16 +45,16 @@ warnings present: Warnings: 1 diagnostic record(s)
 
 ## SQLSTATE classes the library classifies
 
-Every `ExecError` gets a kind derived from the SQLSTATE's first two characters:
+Every `ExecError` gets a kind from the SQLSTATE's first two characters:
 
-| Class prefix | Library kind | Meaning |
-|--------------|--------------|---------|
+| Prefix | Library kind | Meaning |
+|--------|--------------|---------|
 | `08` | `ConnectionLost` | Connection exception |
 | `23` | `ConstraintViolation` | Integrity constraint |
 | `42` | `SyntaxError` | Syntax error or access rule violation |
 | anything else | `QueryError` | Generic driver-reported failure |
 
-If you want to dispatch on a different class (`40` for transaction rollback, say, or `57014` for query canceled), walk the diagnostic chain yourself:
+To dispatch on another class (`40` for transaction rollback, `57014` for query canceled), walk the chain:
 
 ```pony
 match \exhaustive\ conn.exec(sql)
@@ -80,13 +76,13 @@ end
 
 ## Size caps
 
-Two safety limits on the diagnostic reader:
+Two safety limits on the reader:
 
-- Messages are capped at **4096 bytes**. Longer messages get truncated with a `...[truncated]` suffix.
-- Chains are capped at **16 records**. If the driver produced more, the last element is synthetic — SQLSTATE `00000` with a "diagnostic chain truncated" message.
+- Messages capped at **4096 bytes**; longer ones get a `...[truncated]` suffix.
+- Chains capped at **16 records**; overflow is replaced with a synthetic record (SQLSTATE `00000`, "diagnostic chain truncated").
 
-These are defence-in-depth against malicious or misbehaving drivers. In normal use you'll never hit them.
+Defence-in-depth against malicious or misbehaving drivers. You won't hit these in normal use.
 
 ## What's next
 
-Errors are one kind of diagnostic output. [Warnings](warnings.md) are the other — diagnostics that the driver returned on a *successful* operation via `SQL_SUCCESS_WITH_INFO`.
+[Warnings](warnings.md) covers diagnostics on *successful* operations — `SQL_SUCCESS_WITH_INFO`.

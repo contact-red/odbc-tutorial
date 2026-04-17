@@ -1,8 +1,8 @@
 # Zero-Allocation Fetch
 
-Every call to `fetch()` allocates a fresh `Row`. That's the right default — `Row` is `val`, safe to hold across fetches, safe to send across actors — but it means the hot loop through a million-row result set also allocates a million rows.
+Every `fetch()` allocates a fresh `Row`. That's the right default — `Row` is `val`, safe to hold across fetches, safe to send across actors — but a hot loop over a million rows allocates a million rows.
 
-`MutableRow` is the same row-shaped container, but reusable. You allocate one, then hand it to `fetch_into()` on each iteration. The row's column values get overwritten in place.
+`MutableRow` is the same container, reusable. Allocate one, hand it to `fetch_into()` on each iteration, and the column values are overwritten in place.
 
 ```pony
 class ref MutableRow
@@ -20,11 +20,11 @@ class ref MutableRow
   fun size():                  USize
 ```
 
-Same accessor API as `Row`. The difference is in the capability and the fetch method.
+Same accessor API as `Row`. The differences are the capability and the fetch method.
 
 ## `fetch_into` instead of `fetch`
 
-Both `Statement` and `Cursor` have a `fetch_into(row: MutableRow)` companion to `fetch()`:
+Both `Statement` and `Cursor` have `fetch_into`:
 
 ```pony
 fun ref fetch_into(row: MutableRow): (MutableRow | EndOfRows | FetchError)
@@ -38,13 +38,9 @@ Same three branches as `fetch()`. On success you get *the same `MutableRow`* bac
 --8<-- "10-mutable-row/main.pony"
 ```
 
-Running it:
-
 ```shell
 ./build/10-mutable-row
 ```
-
-Output:
 
 ```text
 1 alpha
@@ -54,20 +50,20 @@ Output:
 
 ## What you save
 
-Each iteration reuses the row container. You still allocate strings for `SqlText` and `SqlDecimal` columns — those are immutable `String val` values — but the `Array[SqlValue]` and the `SqlInteger`/`SqlBool`/etc. boxes that live inside it are reused.
+Each iteration reuses the row container. `SqlText` and `SqlDecimal` columns still allocate fresh `String val`s, but the `Array[SqlValue]` and the `SqlInteger`/`SqlBool`/etc. boxes inside are reused.
 
-For result sets where rows are tiny (a few integer columns, say) and rows are many (millions), this is a measurable improvement. For result sets with large text columns the savings are minor; most of the allocation is the strings themselves.
+For tiny rows (a few integer columns) over millions of rows this is measurable. For rows dominated by large text columns it's marginal — most of the allocation is the strings.
 
-Rule of thumb: default to `fetch()` and `Row`. Switch to `MutableRow` when a profile shows row-container allocation at the top of your allocation trace.
+Rule of thumb: default to `fetch()` and `Row`. Switch to `MutableRow` when a profile shows row-container allocation at the top.
 
 ## Capability: `ref`, not `val`
 
-`Row` is `val`. You can send it to another actor, hold references from multiple places, keep it after calling `close()` on the cursor. It's a stable immutable snapshot.
+`Row` is `val` — sendable, multiply-aliasable, stable across `close()`.
 
-`MutableRow` is `ref`. You can't send it across actors. You can only hold one reference to it at a time. You can't keep reading values from it after a subsequent `fetch_into()` — those values have been overwritten.
+`MutableRow` is `ref` — not sendable, single-reference, and its values are invalidated by the next `fetch_into()`.
 
-The capability difference is what makes the reuse safe. `ref` promises no aliasing, which is what lets the library mutate the internal array without breaking Pony's concurrency guarantees.
+The capability difference is what makes reuse safe. `ref` promises no aliasing, which is what lets the library mutate the internal array without breaking Pony's concurrency guarantees.
 
-## Don't mix fetch() and fetch_into() on the same cursor
+## Don't mix `fetch()` and `fetch_into()` on the same cursor
 
-The two methods write to different places, but they're not designed to interleave on the same open cursor. Pick one per result set. If you need both behaviours for different result sets on the same connection, that's fine — just don't switch mid-iteration.
+The two methods aren't designed to interleave on one open cursor. Pick one per result set. Using both against different result sets on the same connection is fine — just don't switch mid-iteration.

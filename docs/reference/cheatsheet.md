@@ -1,6 +1,6 @@
 # Cheat Sheet
 
-Every call sequence you'll use, in one page.
+Every call sequence, in one page.
 
 ## Simple ad-hoc query
 
@@ -113,13 +113,11 @@ See: [Cancellation](../advanced/cancellation.md).
 
 Every error has:
 
-- `.kind()` (or `.verdict()` for `TxCommitError`) — enum-ish primitive
+- `.kind()` (or `.verdict()` on `TxCommitError`) — enum-ish primitive
 - `.string()` — redacted, safe to log
-- `.unsafe_diag()` — raw `DiagChain`, may contain credentials
+- `.unsafe_diag()` — raw `DiagChain`; may contain credentials
 
-`ExecError` and `PrepareError` also have:
-
-- `.unsafe_sql()` — the SQL text that was running when the error happened
+`ExecError` and `PrepareError` also have `.unsafe_sql()` — the SQL that was running.
 
 ## SqlValue variants
 
@@ -138,4 +136,4 @@ Every error has:
 | `SqlTimestamp` | date+time+fraction | `SqlTimestamp(...)` | `row.timestamp(i)?` |
 | `SqlDecimal` | `String val` | `SqlDecimal("1.23")` | `row.decimal(i)?` |
 
-`row.int()` widens any of the four integer types to `I64`. For the specific variant use `row.column(i)?` and match on the returned `SqlValue`.
+`row.int()` widens any of the four integer variants to `I64`. For the specific variant, use `row.column(i)?` and match on the result.

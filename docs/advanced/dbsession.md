@@ -1,8 +1,8 @@
 # Async with DbSession
 
-Everything up to this point has used `Connection` directly — a `ref` object, non-sendable, synchronous. That's fine for a program that's basically a database script. For a Pony program built from multiple actors, it's awkward: only one actor can own the connection, and every call to the database blocks that actor's scheduler thread for the duration of the ODBC call.
+Up to this point we've used `Connection` directly — a `ref` object, non-sendable, synchronous. Fine for a script-shaped program. Awkward in a multi-actor program: only one actor can own the connection, and every call blocks its scheduler thread for the ODBC call's duration.
 
-`DbSession` is an actor that wraps a `Connection` and exposes its operations as behaviours. Each behaviour takes a `Promise` that gets fulfilled when the operation completes.
+`DbSession` is an actor that wraps a `Connection` and exposes its operations as behaviours. Each behaviour takes a `Promise` that's fulfilled when the operation completes.
 
 ```pony
 actor DbSession
@@ -21,32 +21,28 @@ actor DbSession
   be close()
 ```
 
-The shape follows the `Connection` API one-for-one, with two differences:
+Shape follows `Connection` one-for-one, with two differences:
 
-- Results come back through `Promise`s, not synchronous returns
-- `query` returns *all* rows as a sendable `Array[Row val] val`, rather than a non-sendable `Cursor`
+- Results come back through `Promise`s, not synchronous returns.
+- `query` returns *all* rows as a sendable `Array[Row val] val` rather than a non-sendable `Cursor`.
 
-`Cursor` and `Statement` are `ref` — you can't send them. So `DbSession.query` fetches the whole result set into memory and gives you back a sendable array. For very large result sets that's the wrong trade-off; in that case you need a different structure (an actor per query, with the cursor owned privately). For ordinary result sets it's simpler and good enough.
+`Cursor` and `Statement` are `ref` — unsendable. So `DbSession.query` buffers the whole result set into memory. For very large result sets that's the wrong trade; build an actor per query with the cursor private. For ordinary sets it's simpler and good enough.
 
 ## What DbSession doesn't expose
 
-`prepare` isn't a behaviour. Neither is `Statement`. That's because a `Statement` is tied to its `Connection`, and you can't send the handle out of the actor where it lives. If you need prepared statements inside a `DbSession`, the model is: build a custom actor that inherits from `DbSession`'s design but manages its own `Statement`s privately.
+`prepare` isn't a behaviour, and neither is `Statement`: a `Statement` is tied to its `Connection` and can't be sent out. If you need prepared statements inside an actor, build a custom actor that owns its own `Connection` and `Statement`s privately.
 
 ## A chained workflow
 
-Promises compose. The sample below does DROP → CREATE → INSERT → SELECT → DROP in order, with each step triggered by the previous promise's fulfillment:
+Promises compose. The sample does DROP → CREATE → INSERT → SELECT → DROP, each step triggered by the previous promise's fulfillment:
 
 ```pony
 --8<-- "11-dbsession/main.pony"
 ```
 
-Running it:
-
 ```shell
 ./build/11-dbsession
 ```
-
-Output:
 
 ```text
 drop: 0 rows
@@ -59,15 +55,15 @@ cleanup: 0 rows
 
 ## Why pass promises in, rather than returning them?
 
-A small convention the library follows: behaviours take a `Promise` as a parameter rather than returning one. This looks odd at first (most promise-based APIs return the promise) but it has two nice properties:
+Behaviours take a `Promise` as a parameter rather than returning one. Two properties this buys you:
 
-- Callers can decide the promise type. You might want `Promise[Result]`, or a more specific `Promise[MyCustomType]` populated via `.next[MyCustomType]` before the behaviour completes.
-- The callsite makes the promise-handoff visible: `let p = Promise[...]; db.exec(sql, p)` is more self-documenting than a chained fluent call.
+- Callers decide the promise type — `Promise[Result]`, or `Promise[MyCustomType]` populated via `.next[MyCustomType]` before the behaviour completes.
+- The handoff is visible: `let p = Promise[...]; db.exec(sql, p)` reads more clearly than a chained fluent call.
 
-It's a minor point but worth recognising when you're chaining behaviours.
+Minor, but worth recognising when you chain behaviours.
 
 ## Closing down cleanly
 
-`DbSession.close()` is a behaviour — it's queued after any outstanding work. Send it last in your pipeline and the connection shuts down cleanly once the final operation's promise has been fulfilled.
+`close()` is a behaviour — queued after any outstanding work. Send it last and the connection shuts down once the final operation's promise is fulfilled.
 
-The sample's `_after_cleanup` behaviour does exactly that: it fires the last `close()` behaviour after the final `DROP`'s promise fulfils, so the session processes its queue in order and exits.
+The sample's `_after_cleanup` does exactly that: it fires the final `close()` after the last DROP's promise resolves, so the session processes its queue in order and exits.

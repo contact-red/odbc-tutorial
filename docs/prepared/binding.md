@@ -1,6 +1,6 @@
 # Binding Parameters
 
-A prepared statement has one or more *parameter markers* — the `?` characters in SQL like `INSERT INTO t VALUES (?, ?)`. Binding a parameter is the act of associating a value with a marker, identified by a 1-based index.
+A prepared statement has one or more `?` markers, e.g. `INSERT INTO t VALUES (?, ?)`. Binding associates a value with a marker by 1-based index.
 
 ## The bind method
 
@@ -8,9 +8,9 @@ A prepared statement has one or more *parameter markers* — the `?` characters 
 fun ref bind(i: ParamIndex, v: SqlValue): (Bound | BindError)
 ```
 
-The index is a `ParamIndex` — a small wrapper over `U16`. Like `ColIndex`, it exists to keep 1-based index arithmetic from silently mixing with other numeric values.
+`ParamIndex` wraps `U16` — like `ColIndex`, it keeps 1-based index arithmetic from silently mixing with other numeric values.
 
-The value is a `SqlValue` — any of the variants covered in [SQL Types](../basics/sqltypes.md). You construct one with the variant's class:
+The value is any `SqlValue` variant (see [SQL Types](../basics/sqltypes.md)):
 
 ```pony
 SqlBool(true)
@@ -27,19 +27,19 @@ SqlDecimal("1234.5678")
 SqlNull
 ```
 
-On success, `bind` returns the `Bound` primitive. On failure, a `BindError` with a `kind` field you can match on.
+On success, `Bound`. On failure, a `BindError` with a `kind`.
 
 ## BindError kinds
 
 | Kind | Meaning |
 |------|---------|
-| `ParamIndexOutOfRange` | The index was zero or greater than the statement's parameter count |
-| `ParamTooLarge` | Value exceeded the maximum bind size (rare; mostly for oversize strings) |
-| `DriverRejected` | The ODBC driver rejected the bind call |
-| `BindStatementClosed` | The statement has been `close()`d |
-| `BindConnectionClosed` | The connection has been `close()`d |
+| `ParamIndexOutOfRange` | Zero, or greater than the parameter count |
+| `ParamTooLarge` | Value exceeded the maximum bind size (rare) |
+| `DriverRejected` | Driver rejected the bind call |
+| `BindStatementClosed` | Statement has been `close()`d |
+| `BindConnectionClosed` | Connection has been `close()`d |
 
-Every `BindError` also carries the `ParamIndex` that failed — `e.param_index()` — which makes it easy to point at the culprit in a batch.
+Every `BindError` carries the failing `ParamIndex` — `e.param_index()` — so you can point at the culprit in a batch.
 
 ## A complete example
 
@@ -47,13 +47,9 @@ Every `BindError` also carries the `ParamIndex` that failed — `e.param_index()
 --8<-- "05-prepared-bind/main.pony"
 ```
 
-Running it:
-
 ```shell
 ./build/05-prepared-bind
 ```
-
-Output:
 
 ```text
 inserted 1 row
@@ -61,23 +57,17 @@ inserted 1 row
 
 ## `bind_null` as a convenience
 
-Binding `SqlNull` works:
-
-```pony
-stmt.bind(ParamIndex(3), SqlNull)
-```
-
-If you find yourself doing that a lot, there's `bind_null`:
+`stmt.bind(ParamIndex(3), SqlNull)` works. If you do that a lot:
 
 ```pony
 stmt.bind_null(ParamIndex(3))
 ```
 
-Identical effect; just slightly less typing and slightly more obvious intent.
+Same effect, slightly clearer intent.
 
 ## Partial variants
 
-As with every non-trivial method on `Connection`, there's a `_p` variant that raises instead of returning a union:
+The `_p` variants raise instead of returning a union:
 
 ```pony
 try
@@ -89,8 +79,8 @@ else
 end
 ```
 
-Great for loops where you want "any step failing aborts the iteration", and you'll see this in the [Reusing Statements](reuse.md) sample.
+Great for loops where any failure should abort the iteration — see [Reusing Statements](reuse.md).
 
 ## What's next
 
-Binding sets up the parameters. Now the two executes — [`execute()` for SELECTs and `execute_update()` for DML](executing.md).
+Now the two executes — [`execute()` for SELECTs and `execute_update()` for DML](executing.md).
