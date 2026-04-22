@@ -63,3 +63,7 @@ The sample calls `close_cursor()` after the SELECT loop, then `close()` when don
 `Statement` is tied to the `Connection` it was prepared on. Close the connection and the statement is useless. Both are `ref` (non-sendable), so you can't send a prepared statement across actors.
 
 For cross-actor reuse: either each actor owns its own `DbSession` and prepares its own statements, or you funnel all database work through a single actor owning the connection. [`DbSession`](../advanced/dbsession.md) shows the second pattern.
+
+## What's next
+
+So far every `Statement` has been used for bind / execute / fetch. [Prepare-Time Metadata](metadata.md) shows what else a `Statement` will tell you — parameter types, column types, nullability — before any value is bound.

@@ -41,6 +41,17 @@ Connection.prepare(sql) ──► Statement
 
 See: [Executing](../prepared/executing.md), [Reusing Statements](../prepared/reuse.md).
 
+## Prepare-time metadata (no execute)
+
+```text
+Connection.prepare(sql) ──► Statement
+  ├── Statement.parameter_types() ──► Array[SqlTypeTag] val | MetadataError
+  ├── Statement.column_types()    ──► Array[ColumnMeta]  val | MetadataError
+  └── Statement.close()
+```
+
+See: [Prepare-Time Metadata](../prepared/metadata.md).
+
 ## Transaction
 
 ```mermaid
@@ -107,6 +118,7 @@ See: [Cancellation](../advanced/cancellation.md).
 | `PrepareError` | `DriverPrepareError`, `PrepareConnectionClosed` |
 | `BindError` | `ParamIndexOutOfRange`, `ParamTooLarge`, `DriverRejected`, `BindStatementClosed`, `BindConnectionClosed` |
 | `FetchError` | `DriverFetchError`, `ColumnTooLarge`, `UnsupportedColumnType`, `InvalidUtf8`, `FetchConnectionLost`, `FetchConnectionClosed`, `CursorClosed` |
+| `MetadataError` | `MetadataStatementClosed`, `MetadataConnectionClosed`, `DriverDoesNotSupportDescribeParam`, `DriverMetadataError` |
 | `TxBeginError` | `AlreadyInTransaction`, `TxBeginConnectionClosed`, `DriverTxError` |
 | `TxCommitError` | verdict: `CommitFailed`, `CommitAmbiguous`, `NotInTransaction` |
 | `TxRollbackError` | `RollbackNotInTransaction`, `DriverRollbackError` |

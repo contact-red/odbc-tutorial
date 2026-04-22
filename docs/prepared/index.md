@@ -28,8 +28,9 @@ stateDiagram-v2
 
 `close_cursor()` is the key transition — it returns the statement to "ready to bind", so you can batch: prepare once, bind/execute/close-cursor in a loop, close the statement at the end.
 
-## Three pages
+## Four pages
 
 1. [Binding Parameters](binding.md) — `ParamIndex`, `SqlValue` constructors, `BindError`
 2. [Executing](executing.md) — `execute()` vs `execute_update()`
 3. [Reusing Statements](reuse.md) — batch inserts, SELECT iteration, `close_cursor()`
+4. [Prepare-Time Metadata](metadata.md) — `parameter_types()`, `column_types()`, `ColumnMeta`

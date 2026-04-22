@@ -13,11 +13,11 @@ corral init
 ## Add the dependency
 
 ```shell
-corral add github.com/contact-red/odbc.git --version 0.0.2
+corral add github.com/contact-red/odbc.git --version 0.0.3
 corral fetch
 ```
 
-`corral` clones into `_repos/` and checks out `0.0.2` into `_corral/github_com_contact_red_odbc/` — the path `ponyc` finds when we `use "odbc"`.
+`corral` clones into `_repos/` and checks out `0.0.3` into `_corral/github_com_contact_red_odbc/` — the path `ponyc` finds when we `use "odbc"`.
 
 ## A minimal program
 

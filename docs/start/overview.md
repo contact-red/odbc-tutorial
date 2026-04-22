@@ -58,9 +58,10 @@ The public surface is small:
 - [`Statement`](../prepared/index.md) — prepared, reusable statement from `prepare()`
 - [`Row`](../basics/rows.md) / [`MutableRow`](../advanced/mutable-row.md) — one fetched row (immutable val, or reusable ref)
 - [`SqlValue`](../basics/sqltypes.md) — the closed union of supported column types
+- [`SqlTypeTag`, `ColumnMeta`, `Nullability`](../prepared/metadata.md) — prepare-time parameter and column descriptions
 - [`DbSession`](../advanced/dbsession.md) — actor wrapper around `Connection`
 - [`CancelToken`](../advanced/cancellation.md) — sendable cancellation handle
 
-Plus the error classes: `ConnectError`, `ExecError`, `PrepareError`, `BindError`, `FetchError`, `TxBeginError`, `TxCommitError`, `TxRollbackError`. Each has a redacted `.string()` and an `.unsafe_diag()` escape hatch.
+Plus the error classes: `ConnectError`, `ExecError`, `PrepareError`, `BindError`, `FetchError`, `MetadataError`, `TxBeginError`, `TxCommitError`, `TxRollbackError`. Each has a redacted `.string()` and an `.unsafe_diag()` escape hatch.
 
 Next: [what you need to install](needs.md).

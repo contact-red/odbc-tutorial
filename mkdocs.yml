@@ -69,6 +69,7 @@ nav:
     - Binding Parameters: "prepared/binding.md"
     - Executing: "prepared/executing.md"
     - Reusing Statements: "prepared/reuse.md"
+    - Prepare-Time Metadata: "prepared/metadata.md"
   - Transactions:
     - Begin / Commit / Rollback: "transactions/index.md"
     - Transaction Errors: "transactions/errors.md"
